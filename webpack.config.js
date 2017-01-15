@@ -25,7 +25,12 @@ var config = {
       {
         include: /\.css$/,
         loader: "style-loader!css-loader"
+      },
+      {
+        include: /\.json$/,
+        loader: "json"
       }
+
     ]
   },
   plugins: [
