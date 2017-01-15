@@ -7,6 +7,7 @@ import * as fetch from "isomorphic-fetch";
 import { Promise } from "es6-promise";
 import * as Immutable from "immutable";
 import * as ReactMarkown from "react-markdown";
+const RM = ReactMarkown as any;
 
 import App from "./components/App";
 
@@ -15,29 +16,23 @@ interface Config {
     name: string;
 }
 
-const RM = ReactMarkown as any;
+fetch("config.json").then((response: any) => response.json())
+    .then((configs: Array<Config>) =>
+        Promise.all(
+            configs.map(config => fetch(`article/${config.name}.md`).then(r => r.text()))
+        ).then((markdowns) => {
+            const contents = Immutable.Range(0, markdowns.length).map((idx: number) =>
+                Immutable.Map(configs[idx]).set("md", markdowns[idx])
+            );
+            const testMDs = contents.map((content, idx) =>
+                <li key={idx}><RM source={content.get("md")} /></li>
+            );
 
-fetch("config.json").then((response) =>
-    response.json()
-).then((configs: Array<Config>) =>
-    Promise.all(
-        configs.map(config => fetch(`article/${config.name}.md`))
-            .concat(configs.map((config) => Promise.resolve({ text: () => config })))
-    )).then((responses) =>
-        Promise.all(responses.map((response) => response.text()))
-    ).then((markdowns) => {
-        const length = markdowns.length;
-        const contents = Immutable.Range(0, length / 2).map((idx) =>
-            Immutable.Map(markdowns[length / 2 + idx]).set("md", markdowns[idx])
-        ).toList();
-
-        const htmls = contents.map((content, idx) =>
-            <li key={idx}><RM source={content.get("md")} /></li>
-        );
-
-        ReactDOM.render(
-            <ul>
-                {htmls}
-            </ul>
-            , document.getElementById("content"));
-    });
+            ReactDOM.render(
+                <ul>
+                    {testMDs}
+                </ul>
+                , document.getElementById("content")
+            );
+        })
+    );
